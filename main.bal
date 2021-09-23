@@ -18,6 +18,7 @@ User[] users = [];
 
 function init() {
     users.push({id: 1, firstName: "Imesha", lastName: "Sudasingha", username: "imesha", password: "1234", roles: [VIEWER]});
+    users.push({id: 1, firstName: "John", lastName: "Doe", username: "john", password: "1234", roles: [CREATOR, VIEWER]});
 }
 
 type LoginRequest record {|

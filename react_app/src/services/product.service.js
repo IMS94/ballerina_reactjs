@@ -12,6 +12,16 @@ class ProductServiceImpl {
             .catch(err => reject(err));
         });
     }
+
+    addProduct(product: Product): Promise {
+        return new Promise((resolve, reject) => {
+            secureClient.post("products", product)
+            .then(response => {
+                resolve();
+            })
+            .catch(err => reject(err));
+        });
+    }
 }
 
 const ProductService = new ProductServiceImpl();
