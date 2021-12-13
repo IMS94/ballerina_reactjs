@@ -1,4 +1,4 @@
-import { Button, AppBar, Card, CardContent, CircularProgress, Container, Grid, IconButton, makeStyles, Toolbar, Typography, Box, Divider, List, ListItem, ListItemText, CardActions } from "@material-ui/core";
+import { Button, AppBar, Card, CardContent, CircularProgress, Container, Grid, IconButton, makeStyles, Toolbar, Typography, Box, Divider, List, ListItem, ListItemText, CardActions, ListItemSecondaryAction } from "@material-ui/core";
 import { Alert, AlertTitle } from "@material-ui/lab";
 import { useSnackbar } from "notistack";
 import { useEffect, useState } from "react";
@@ -8,6 +8,7 @@ import AuthService from "../../services/auth.service";
 import ProductService from "../../services/product.service";
 import { Product } from "../../entity";
 import AddProductDialog from "./AddProductDialog";
+import DeleteIcon from '@material-ui/icons/Delete';
 
 const useStyles = makeStyles((theme) => ({
     root: {
@@ -90,6 +91,11 @@ function HomeView() {
                                         <>
                                             <ListItem>
                                                 <ListItemText primary={p.name} secondary={p.description} />
+                                                <ListItemSecondaryAction>
+                                                    <IconButton edge="end" aria-label="delete">
+                                                        <DeleteIcon />
+                                                    </IconButton>
+                                                </ListItemSecondaryAction>
                                             </ListItem>
                                             <Divider />
                                         </>

@@ -1,9 +1,18 @@
 import ballerina/jwt;
+import ballerina/log;
 import ballerina/http;
 
-const CREATOR = "creator";
-const VIEWER = "viewer";
-type Role CREATOR | VIEWER;
+const SCOPE_CREATE = "product:create";
+const SCOPE_UPDATE = "product:update";
+const SCOPE_VIEW = "product:view";
+const SCOPE_DELETE = "product:delete";
+
+type Scope SCOPE_CREATE|SCOPE_DELETE|SCOPE_VIEW|SCOPE_UPDATE;
+
+type Role record {|
+    string name;
+    Scope[] scopes = [];
+|};
 
 type User record {|
     int id;
@@ -11,14 +20,19 @@ type User record {|
     string lastName;
     string username;
     string password;
-    Role[] roles;
+    Role[] roles = [];
 |};
 
 User[] users = [];
 
 function init() {
-    users.push({id: 1, firstName: "Imesha", lastName: "Sudasingha", username: "imesha", password: "1234", roles: [VIEWER]});
-    users.push({id: 1, firstName: "John", lastName: "Doe", username: "john", password: "1234", roles: [CREATOR, VIEWER]});
+    Role admin = {name: "Admin", scopes: [SCOPE_CREATE, SCOPE_DELETE, SCOPE_UPDATE, SCOPE_VIEW]};
+    Role manager = {name: "Admin", scopes: [SCOPE_CREATE, SCOPE_UPDATE, SCOPE_VIEW]};
+    Role cashier = {name: "Admin", scopes: [SCOPE_VIEW]};
+
+    users.push({id: 1, firstName: "Imesha", lastName: "Sudasingha", username: "imesha", password: "1234", roles: [admin]});
+    users.push({id: 2, firstName: "John", lastName: "Doe", username: "john", password: "1234", roles: [manager]});
+    users.push({id: 3, firstName: "Jane", lastName: "Doe", username: "jane", password: "1234", roles: [cashier]});
 }
 
 type LoginRequest record {|
@@ -30,9 +44,9 @@ type LoginResponse record {|
     string token;
 |};
 
-listener httpListener = new http:Listener(8080);
+listener httpListener = check new http:Listener(8080);
 
-@http:ServiceConfig{
+@http:ServiceConfig {
     cors: {
         allowOrigins: ["*"]
     }
@@ -47,6 +61,20 @@ service / on httpListener {
 
         User user = matched[0];
 
+        Scope[] scopeSet = user.roles.map(role => role.scopes)
+            .reduce(function(Scope[] accum, Scope[] scopes) returns Scope[] {
+                scopes.forEach(function(Scope scope) {
+                    if accum.indexOf(scope) == () {
+                        accum.push(scope);
+                    }
+                });
+                return accum;
+            }, []);
+
+        string aggScopes = string:'join(" ", ...scopeSet);
+
+        log:printInfo("Authenticating user with scopes", user = user, scopes = aggScopes);
+
         jwt:IssuerConfig issuerConfig = {
             username: user.username,
             issuer: "wso2",
@@ -58,9 +86,10 @@ service / on httpListener {
                 }
             },
             customClaims: {
-                "roles": user.roles
+                "scope": aggScopes
             }
         };
+
         string jwt = check jwt:issue(issuerConfig);
         return {token: jwt};
     }
@@ -80,11 +109,10 @@ http:JwtValidatorConfig jwtValidatorConfig = {
     audience: "example.com",
     signatureConfig: {
         certFile: "./resources/public.cert"
-    },
-    scopeKey: "roles"
+    }
 };
 
-@http:ServiceConfig{
+@http:ServiceConfig {
     cors: {
         allowOrigins: ["*"]
     }
@@ -99,8 +127,7 @@ service /products on httpListener {
     @http:ResourceConfig {
         auth: [
             {
-                jwtValidatorConfig: jwtValidatorConfig,
-                scopes: [VIEWER]
+                jwtValidatorConfig: jwtValidatorConfig
             }
         ]
     }
@@ -112,7 +139,7 @@ service /products on httpListener {
         auth: [
             {
                 jwtValidatorConfig: jwtValidatorConfig,
-                scopes: [CREATOR]
+                scopes: [SCOPE_CREATE]
             }
         ]
     }
@@ -120,5 +147,19 @@ service /products on httpListener {
         id += 1;
         product.id = id;
         products.push(product);
+    }
+
+    @http:ResourceConfig {
+        auth: [
+            {
+                jwtValidatorConfig: jwtValidatorConfig,
+                scopes: [SCOPE_DELETE]
+            }
+        ]
+    }
+    resource function delete [int id]() returns error? {
+        products = from var product in products
+            where product?.id != id
+            select product;
     }
 }
