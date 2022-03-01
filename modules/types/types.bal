@@ -32,5 +32,6 @@ public const SCOPE_UPDATE = "product:update";
 public const SCOPE_VIEW = "product:view";
 public const SCOPE_DELETE = "product:delete";
 
+# Scopes allowed for users
 public type Scope SCOPE_CREATE|SCOPE_DELETE|SCOPE_VIEW|SCOPE_UPDATE;
 
